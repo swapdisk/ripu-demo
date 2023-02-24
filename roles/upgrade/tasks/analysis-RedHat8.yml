@@ -7,7 +7,6 @@
 - name: Install packages for preupgrade analysis
   yum:
     name: "{{ analysis_packages_el8 }}"
-    enablerepo: "{{ analysis_repos_el8 }}"
     state: latest
 
 - name: Leapp preupgrade report
