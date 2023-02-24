@@ -6,6 +6,7 @@ analysis_packages_el7:
 analysis_packages_el8:
   - leapp-upgrade-el8toel9
   - leapp-rhui-aws
+  - vdo
   - boom-boot
 
 analysis_repos_el7:
