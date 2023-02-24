@@ -13,9 +13,9 @@ analysis_repos_el7:
 log_directory: /var/log/ripu
 log_file: "{{ log_directory }}/ripu.log"
 
-leapp_preupg_opts: ''
+leapp_preupg_opts: '--no-rhsm'
 
-leapp_upgrade_opts: ''
+leapp_upgrade_opts: '--no-rhsm'
 
 result_filename: '/var/log/leapp/leapp-report.txt'
 
