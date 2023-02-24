@@ -17,3 +17,5 @@ leapp_preupg_opts: ''
 
 leapp_upgrade_opts: ''
 
+result_filename: '/var/log/leapp/leapp-report.txt'
+
