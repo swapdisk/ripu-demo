@@ -1,0 +1,26 @@
+---
+- hosts: all
+  strategy: free
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Initialize lock and logging
+      import_role:
+        name: logging
+        tasks_from: job_start.yml
+      vars:
+        job_name: 'RIPU preupgrade analysis'
+
+    - name: Generate preupgrade analysis report
+      block:
+        - name: Run RIPU preupg
+          import_role:
+            name: upgrade
+            tasks_from: "analysis.yml"
+
+      always:
+        - name: Clean up
+          import_role:
+            name: logging
+            tasks_from: clean_up.yml
+

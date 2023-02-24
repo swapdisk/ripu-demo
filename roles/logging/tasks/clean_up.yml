@@ -1,0 +1,5 @@
+---
+- name: Archive log file
+  shell: |
+    echo Job ended at $(date -Is) >> {{ log_file }}
+    mv {{ log_file }} {{ log_file }}-{{ ansible_date_time.iso8601_basic_short }}

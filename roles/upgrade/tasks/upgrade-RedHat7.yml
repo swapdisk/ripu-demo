@@ -1,0 +1,130 @@
+---
+- name: Verify no inhibitor results found during preupgrade
+  shell: |
+    set -o pipefail
+    echo 'Checking preupgrade results:' | tee -a {{ log_file }}
+    ( xmllint /root/preupgrade/result.xml | grep '<ns0:result>' | sed 's/<[^>]*>//g' | sort | uniq -c ) 2>&1 | tee -a {{ log_file }}
+  args:
+    executable: /bin/bash
+  register: results
+  changed_when: false
+  failed_when: results.rc != 0 or results.stdout.find('fail') != -1 or results.stdout.find('error') != -1
+
+- name: Snapshot data file status
+  stat:
+    path: "{{ snapshot_data_file }}"
+  register: snapdata
+
+- name: Snapshot kernel release file status
+  stat:
+    path: "{{ snapshot_kernel_release_file }}"
+  register: snapkrel
+
+- name: If snapshot data file exists
+  block:
+    - name: LVM snapshot creations
+      shell: |
+        set -o pipefail
+        if [[ ! "$(grubby --default-kernel)" =~ "$(uname -r)" ]]; then
+          echo 'Not running bootloader default kernel version. The host must be rebooted before continuing with OS upgrade.' | tee -a {{ log_file }}
+          exit 1
+        fi
+        while read snapline; do
+          snapdata=($snapline)
+          vg=${snapdata[0]}
+          lv=${snapdata[1]}
+          size=${snapdata[2]}
+          lvcreate -s -L ${size}b -n snap_${lv} ${vg}/${lv} 2>&1 | tee -a {{ log_file }}
+          if [[ $? -ne 0 ]]; then
+            echo "Fatal error while creating snapshot volume for ${vg}/${lv}" | tee -a {{ log_file }}
+            exit 1
+          fi
+        done < {{ snapshot_data_file }}
+      args:
+        executable: /bin/bash
+
+    - name: Backup boot files
+      shell: |
+        set -o pipefail
+        rel=$(uname -r)
+        ( cd /boot &&
+        cp -p config-$rel config-snapshot &&
+        cp -p initramfs-$rel.img initramfs-snapshot.img &&
+        cp -p symvers-$rel.gz symvers-snapshot.gz &&
+        cp -p System.map-$rel System.map-snapshot &&
+        cp -p vmlinuz-$rel vmlinuz-snapshot &&
+        cp -p grub2/grub.cfg grub2/grub.cfg.preupg &&
+        echo $rel > {{ snapshot_kernel_release_file }} ) 2>&1 | tee -a {{ log_file }}
+      args:
+        executable: /bin/bash
+
+    - name: Boom entry creation
+      shell: |
+        set -o pipefail
+        snapdata=($(head -1 {{ snapshot_data_file }}))
+        rootsnap=${snapdata[0]}/snap_${snapdata[1]}
+        title=RHEL{{ ansible_distribution_version }}\ Snapshot\ -\ {{ ansible_date_time.date }}
+        boom entry create --title "$title" --rootlv $rootsnap \
+          --linux /vmlinuz-snapshot --initrd /initramfs-snapshot.img 2>&1 | tee -a {{ log_file }}
+      args:
+        executable: /bin/bash
+
+    - name: Regenerate GRUB configuration file
+      shell: |
+        set -o pipefail
+        grub2-mkconfig 2>&1 > /boot/grub2/grub.cfg | tee -a {{ log_file }}
+      args:
+        executable: /bin/bash
+
+  when: snapdata.stat.exists and not snapkrel.stat.exists
+
+- name: Run preupgrade hooks
+  shell: |
+    set -o pipefail
+    for exe in $(find /root/preupgrade/preupgrade-scripts -type f -executable); do 
+      echo "Running $exe..." | tee -a {{ log_file }}
+      ( cd ${exe%/*} && ./${exe##*/} ) 2>&1 | tee -a {{ log_file }}
+      if [[ $? -ne 0 ]]; then
+        echo "Fatal error while running preupgrade hook $exe" | tee -a {{ log_file }}
+        exit 1
+      fi
+    done
+  args:
+    executable: /bin/bash
+
+- name: Start Leapp OS upgrade
+  shell: |
+    set -o pipefail
+    modprobe -r btrfs
+    leapp upgrade 2>&1 | tee -a {{ log_file }}
+  args:
+    executable: /bin/bash
+
+- name: Reboot to continue Leapp OS upgrade
+  reboot:
+    msg: "Host is starting Leapp OS upgrade now!"
+    post_reboot_delay: 60
+    reboot_timeout: 43200
+
+- name: Wait for Leapp firstboot phase to finish
+  debug:
+    msg: 'FIXME: add unitl task here!'
+
+- name: Run postupgrade hooks
+  shell: |
+    set -o pipefail
+    for exe in $(find /root/preupgrade/postupgrade.d -type f -executable); do 
+      echo "Running $exe..." | tee -a {{ log_file }}
+      ( cd ${exe%/*} && ./${exe##*/} ) 2>&1 | tee -a {{ log_file }}
+      if [[ $? -ne 0 ]]; then
+        echo "Fatal error while running postupgrade hook $exe" | tee -a {{ log_file }}
+        exit 1
+      fi
+    done
+  args:
+    executable: /bin/bash
+
+- name: RIPU in-place OS upgrade is done
+  debug:
+    msg: 'The in-place OS upgrade is now complete. Engage your partner teams to begin application validation.'
+

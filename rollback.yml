@@ -1,0 +1,25 @@
+---
+- hosts: all
+  strategy: free
+  become: true
+  tasks:
+    - name: Initialize lock and logging
+      import_role:
+        name: logging
+        tasks_from: job_start.yml
+      vars:
+        job_name: 'RIPU LVM snapshot rollback'
+
+    - name: Perform LVM snapshot rollback
+      block:
+        - name: Snapshot rollback
+          import_role:
+            name: upgrade
+            tasks_from: "rollback.yml"
+
+      always:
+        - name: Clean up
+          import_role:
+            name: logging
+            tasks_from: clean_up.yml
+
