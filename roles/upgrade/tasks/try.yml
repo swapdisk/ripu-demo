@@ -1,5 +1,0 @@
----
-- name: Try
-  debug:
-    msg: "{{ analysis_packages[{{ ansible_distribution }}{{ ansible_distribution_major_version }}] }}"
-
