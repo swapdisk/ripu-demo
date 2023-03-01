@@ -6,8 +6,8 @@
 
 - name: Install packages for preupgrade analysis
   yum:
-    name: "{{ analysis_packages_78 }}"
-    enablerepo: "{{ analysis_repos_78 }}"
+    name: "{{ analysis_packages_el7 }}"
+    enablerepo: "{{ analysis_repos_el7 }}"
     state: latest
 
 - name: Leapp preupgrade report
@@ -17,17 +17,6 @@
   async: 43200
   poll: 60
   register: leapp
-  args:
-    executable: /bin/bash
-
-- name: RIPU preupgrade analysis report
-  shell: |
-    set -o pipefail
-    preupg {{ ripu_preupg_opts }} 2>&1 | tee -a {{ log_file }}
-  async: 43200
-  poll: 60
-  register: preupg
-  failed_when: preupg.rc > 2
   args:
     executable: /bin/bash
 
