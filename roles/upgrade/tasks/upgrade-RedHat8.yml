@@ -3,7 +3,7 @@
   shell: |
     set -o pipefail
     echo 'Checking preupgrade results:' | tee -a {{ log_file }}
-    ( xmllint /root/preupgrade/result.xml | grep '<ns0:result>' | sed 's/<[^>]*>//g' | sort | uniq -c ) 2>&1 | tee -a {{ log_file }}
+    ( head -1 {{ result_filename }} | grep -v inhibitor ) 2>&1 | tee -a {{ log_file }}
   args:
     executable: /bin/bash
   register: results
