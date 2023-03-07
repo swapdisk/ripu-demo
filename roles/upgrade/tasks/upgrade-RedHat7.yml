@@ -10,6 +10,10 @@
   changed_when: false
   failed_when: results.rc != 0 or results.stdout.find('fail') != -1 or results.stdout.find('error') != -1
 
+- name: Create snapshot
+  debug:
+    msg: 'FIXME: snapshot needs to happen here!'
+
 - name: Run preupgrade hooks
   shell: |
     set -o pipefail
@@ -28,7 +32,7 @@
   shell: |
     set -o pipefail
     modprobe -r btrfs
-    leapp upgrade 2>&1 | tee -a {{ log_file }}
+    leapp upgrade {{ leapp_upgrade_opts }} 2>&1 | tee -a {{ log_file }}
   args:
     executable: /bin/bash
 
