@@ -1,4 +1,10 @@
-# RHEL In-place Upgrade Automation
+# Archived!
+
+This repo has been archived. Follow the continuing development with the growing community at [oamg/ansible-leapp](https://github.com/oamg/ansible-leapp).
+
+So long, and thanks for all the fish!
+
+## RHEL In-place Upgrade Automation
 
 This is a collection of Ansible playbooks that demonstrate how to automate RHEL in-place upgrades based on the Leapp tool.
 
